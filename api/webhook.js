@@ -1,89 +1,58 @@
-// api/webhook.js
 export default async function handler(req, res) {
-  // CORS 헤더 설정
+  // CORS 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
-  // OPTIONS 요청 처리 (CORS 프리플라이트)
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
   
-  // GET 요청 - 상태 확인
   if (req.method === 'GET') {
-    return res.status(200).json({
+    return res.json({
       status: 'active',
-      message: 'TradingView → Vercel → VM HTTP Bridge',
-      timestamp: new Date().toISOString(),
-      endpoints: ['/api/webhook']
+      message: 'TradingView → Vercel → Firebase → AutoHotkey',
+      timestamp: new Date().toISOString()
     });
   }
   
-  // POST 요청 - 웹훅 신호 처리
   if (req.method === 'POST') {
+    const signal = req.body;
+    
+    if (!signal.symbol || !signal.action) {
+      return res.status(400).json({ error: 'Missing symbol or action' });
+    }
+    
+    // Firebase RTDB에 신호 저장
+    const firebaseUrl = process.env.FIREBASE_URL || 'https://tradingview-signals-default-rtdb.firebaseio.com';
+    
     try {
-      const signal = req.body;
-      
-      // 신호 검증
-      if (!signal.symbol || !signal.action) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Missing required fields: symbol, action'
-        });
-      }
-      
-      // VM에 직접 HTTP 요청 전송
-      const vmUrl = process.env.VM_WEBHOOK_URL || 'http://YOUR_VM_IP:8080/signal';
-      const authKey = process.env.VM_AUTH_KEY || 'trading_secret_2024';
-      
-      const vmResponse = await fetch(vmUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authKey}`
-        },
+      const response = await fetch(`${firebaseUrl}/signals.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...signal,
           timestamp: new Date().toISOString(),
-          source: 'vercel_direct'
-        }),
-        signal: AbortSignal.timeout(5000) // 5초 타임아웃
+          source: 'vercel'
+        })
       });
       
-      if (vmResponse.ok) {
-        const vmResult = await vmResponse.json();
-        return res.status(200).json({
-          status: 'success',
-          message: 'Signal sent to VM successfully',
-          vmStatus: vmResponse.status,
-          vmResult: vmResult,
-          signal: {
-            symbol: signal.symbol,
-            action: signal.action
-          }
+      if (response.ok) {
+        return res.json({ 
+          status: 'success', 
+          message: 'Signal saved to Firebase' 
         });
       } else {
-        throw new Error(`VM responded with status ${vmResponse.status}`);
+        throw new Error(`Firebase error: ${response.status}`);
       }
       
     } catch (error) {
-      console.error('VM connection error:', error.message);
-      
-      // VM 연결 실패시 로그 기록
-      return res.status(202).json({
-        status: 'vm_error',
-        message: 'VM connection failed, signal logged',
-        error: error.message,
-        signal: req.body
+      return res.status(500).json({ 
+        error: 'Firebase connection failed',
+        message: error.message 
       });
     }
   }
   
-  // 지원하지 않는 메서드
-  return res.status(405).json({
-    status: 'error',
-    message: 'Method not allowed'
-  });
+  return res.status(405).json({ error: 'Method not allowed' });
 }
