@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, push, set } from 'firebase/database';
 
 const firebaseConfig = {
-  databaseURL: "https://eigerbot-coin-default-rtdb.asia-southeast1.firebasedatabase.app"
+  databaseURL: "https://tradingview-signals-844e7-default-rtdb.firebaseio.com/"
 };
 
 // Firebase 초기화 (중복 방지)
