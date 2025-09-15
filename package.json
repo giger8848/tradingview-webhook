@@ -1,4 +1,3 @@
-// package.json
 {
   "scripts": {
     "build": "next build --debug",
