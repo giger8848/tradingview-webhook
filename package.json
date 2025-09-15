@@ -1,19 +1,5 @@
 {
-  "name": "nas100-tradingview-webhook",
-  "version": "1.0.0",
-  "description": "NAS100 TradingView Webhook API",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
-  },
-  "dependencies": {
-    "next": "^14.0.0",
-    "firebase": "^10.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "build": "[my-framework] build --output public"
   }
 }
